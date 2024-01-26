@@ -12,7 +12,7 @@ This project involves:
 
 # Deliverables
 - EDA Technical Exploration Notebook (EDA.html)
-- Results Summary Report (Results.html)
+- Non-technical Report (Results.html)
 
 # Dependencies
 The analysis was conducted using Python and relevant data analysis libraries. Ensure that the required dependencies are installed before running the code.
