@@ -1,0 +1,51 @@
+---
+title: Non-Technical Report on Thrombosis
+author:
+  - name: Ahmed Khair
+    affiliations: Georgetown University
+    orcid: 0000-0001-6697-2724
+date: 02/21/2023
+format:
+  html:
+    toc: true
+    embed-resources: true
+    cold-fold: true
+    theme: default
+    code-copy: true
+    code-line-numbers: true
+    number-sections: true
+    highlight-style: github
+jupyter: python3
+---
+
+In this non-technical report, we will be presenting four publication plots along with the key takeaways of the main ideas presented
+
+## First Publication plot (Fig1)
+
+![](plots/plot-01.png)
+
+
+
+In fig1, a stacked barplot is shown which investigates the average age of a thrombosis patient according to their sex. This plot is useful as it allows the reader to gain a better understanding of thrombosis and how it affects different age groups. It is evident that the older the patient gets, they have a higher chance of getting thrombosis. For example, in the plot, we can deduce that the average age of a male patient that has thrombosis is 45 while a female patient is 28. Although females are more likely to get thrombosis at a younger age than men, we can use this information to encourage more testing for females around their late 20's in order to detect thrombosis. Moreover, this information can be used to help people at similar ages who are at risk of getting thrombosis to implement techniques to reduce thrombosis such as exercising regularly.
+
+## Second Publication plot (Fig2)
+
+![](plots/plot-02.png)
+
+
+In fig2, we observe the rise in acl_igg values for positive thrombosis as compared to negative thrombosis. Similarly, the same rise in positive values is observed in acl_igm. In acl_iga, we can deduce there is a rise in male positive thrombosis patients as compared to females. For females, the average acl_igg value for negative thrombosis is 0.93 while for positive thrombosis it is 1.84. For males, the average acl_igg value for negative thrombosis is 0.51 while for positive thrombosis is 1.22. 
+In terms of acl_igm, the average value for negative thrombosis in females is 2.25 while for positive thrombosis it is 2.61. For males, the average value for positive thrombosis is 2.72 in acl_igm while for negative thrombosis it is 1.77. Moreover, for acl_iga, the average value for negative thrombosis in females is 2.13 while for positive thrombosis it is 1.81. For males, the average value for positive thrombosis in acl_igm is 5.5 while negative thrombosis is 0.916. Additionally, these results can help a doctor detect whether a patient has thrombosis. For example, the antibody which has the highest range of positive thrombosis within males is acl_iga while for females it is acl_igm. 
+
+## Publication Plot 3 (Fig 3)
+
+![](plots/plot-03.png)
+
+
+In fig 3, a piechart was developed showing the most top 10 most common diagnosis for positive and negative thrombosis patient. This piechart is beneficial in allowing doctors/researchers to enhance their understanding of thrombosis in greater detail by looking at the most significant diagnoses. By analyzing the piechart, we can see that in the negative diagnosis chart, the most common diagnosis is SLE (35%) followed up by sJS (25%) while the lowest diagnosis is IP, SjS susp, APS with 4% and Behcet (4%). While in the positive thrombosis chart, the most common diagnosis is SLE (44%) followed up with APS(19%) and the lowest diagnosis is abortion, preg, ami with 2% and dead with 1%.
+
+## Publication Plot 4 (fig.4)
+
+![](plots/plot-04.png)
+
+In fig.4, it is to assess the relationship of laboratory examinations with each other. The color bar indicates the relationship between each exam in which 1.0 (green) shows the highest correlation while -0.4 (red) shows the weakest correlation.  It is worth mentoning that got, gpt & idh as well as hgb and hct are positively correlated.
+
