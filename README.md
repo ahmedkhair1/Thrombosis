@@ -5,11 +5,11 @@ Analyzing Thrombosis data to unravel insights
 The objective of this project is to conduct a comprehensive exploratory data analysis (EDA) to gain insights into the structure and patterns of the dataset. The analysis will be performed both visually and non-visually to address initial questions and formulate hypotheses for the given dataset.
 
 This project involves:
-- Data ingestion
+- Data Ingestion
 - Data Cleaning
 - Data Visualization
 - Producing High-quality reports
-- 
+
 # Deliverables
 EDA Technical Exploration Notebook (EDA.html)
 Results Summary Report (Results.html)
