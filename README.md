@@ -11,11 +11,11 @@ This project involves:
 - Producing High-quality reports
 
 # Deliverables
-EDA Technical Exploration Notebook (EDA.html)
-Results Summary Report (Results.html)
+- EDA Technical Exploration Notebook (EDA.html)
+- Results Summary Report (Results.html)
 
 # Dependencies
-The analysis was  conducted using Python and relevant data analysis libraries. Ensure that the required dependencies are installed before running the code.
+The analysis was conducted using Python and relevant data analysis libraries. Ensure that the required dependencies are installed before running the code.
 
 # Instructions
 1. Clone the repository to your local machine.
