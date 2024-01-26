@@ -1,0 +1,469 @@
+---
+title: Exploratory Data Analysis on Thrombosis Data
+author:
+  - name: Ahmed Khair
+    affiliations: Georgetown University
+    orcid: 0000-0001-6697-2724
+date: 02/21/2023
+format:
+  html:
+    toc: true
+    embed-resources: true
+    theme: default
+    code-copy: true
+    code-fold: true
+    code-line-numbers: true
+    number-sections: true
+    highlight-style: github
+jupyter: python3
+---
+
+```{python}
+#!pip install pep8
+import pep8
+```
+
+```{python}
+import pandas as pd
+import numpy as np
+from IPython.display import display
+import warnings
+
+warnings.filterwarnings("ignore")
+import seaborn as sns
+import matplotlib.pyplot as plt
+from datetime import datetime
+```
+
+## Data Summary
+
+- After reading the medical data description file, I was able to enhance my knowledge of collagen diseases and how thrombosis is a major cause of death in such conditions. It is worth mentioning that thrombosis is closely related to anti-cardiolipin antibodies, which can help in better understanding thrombosis.
+
+
+- Furthermore, I found it fascinating to discover and predict the possibilities of thrombosis, as well as identify features that accurately classify collagen diseases. The medical data description file included three files, namely tsumato_a, tsumato_b, and tsumato_c. Firstly, tsumato_a explores basic information about patients that can be used to predict thrombosis. Secondly, tsumato_b file includes special laboratory examinations which are conducted on patients with specific tests related to collagen diseases. Tsumato_b contains an integral column called examination_date, which can be used to identify when thrombosis is suspected in negative results. Thirdly, the tsumato_c file contains laboratory examinations with temporal stamps. Ultimately, all of these files will be useful in helping me answer my initial questions and become a better data scientist.
+
+### Step-1: Initial questions
+
+1. What is the average age of patients of a thrombosis patient?
+
+
+2. What antibody namely ("acl_igg", "acl_igm" and "acl_iga") range is more likely linked to thrombosis patients?
+
+
+3. What is the difference between the diagnosis of positive and negative thrombosis patient?
+
+
+### Step-2: Data Ingestion, cleaning, and munging
+
+
+
+### Data munging
+
+```{python}
+def dateparse1(x):
+    if type(x) not in [None, np.nan, float]:
+        x = str(x).strip("S")
+        if len(x.split(".")[0]) == 4 and len(x.split(".")) != 1:
+            return datetime.strptime(x, "%Y.%m.%d")
+        elif len(x.split("/")) > 1:
+            return datetime.strptime(x, "%Y/%m/%d")
+        else:
+            return datetime.strptime(x, "%y.%m.%d")
+    else:
+        return np.nan
+```
+
+- When I first read the data by using the default encodings, I received an error regarding invalid encoding type. Thus, I changed the encoding to latin and i was able to read the csv file
+
+- In dfA data frame, there exists three date columns namely birthday, description date and first date. Each column has a different date format thus I created a custom parser function and passed it through the date_parser parameter of the read_csv function in order to transform these three date columns. Additionally, I used the same parser for the examination date column in dfB because it follows the same date format as well.
+
+```{python}
+dfA = pd.read_csv(
+    "data/TSUMOTO_A.CSV",
+    encoding="latin",
+    parse_dates=["Birthday", "Description", "First Date"],
+    date_parser=dateparse1,
+)
+
+dfB = pd.read_csv(
+    "data/TSUMOTO_B.CSV",
+    encoding="latin",
+    parse_dates=["Examination Date"],
+    date_parser=dateparse1,
+)
+dfC = pd.read_csv("data/TSUMOTO_C.CSV", encoding="latin", error_bad_lines=False)
+```
+
+```{python}
+print("TSUMOTO_A")
+display(dfA.head())
+print("TSUMOTO_B")
+display(dfB.head())
+print("TSUMOTO_C")
+display(dfC.head())
+```
+
+```{python}
+print("TSUMOTO_A")
+display(dfA.isnull().mean())
+print("TSUMOTO_B")
+display(dfB.isnull().mean())
+print("TSUMOTO_C")
+display(dfC.isnull().mean())
+```
+
+- Additionally, I created a function that converts columns into a snake_case format as mentioned in the instructions
+
+```{python}
+def make_snake_case(x):
+    x = x.lower().split(" ")
+    return "_".join(x)
+```
+
+```{python}
+dfA.columns = [make_snake_case(x) for x in dfA.columns.to_list()]
+dfB.columns = [make_snake_case(x) for x in dfB.columns.to_list()]
+dfC.columns = [make_snake_case(x) for x in dfC.columns.to_list()]
+```
+
+- I removed some columns from dfB which has more that 50% NAN values, as it doesn’t provide enough information
+
+```{python}
+empty_columns = dfB.isnull().mean()[dfB.isnull().mean() > 0.5].index
+dfB = dfB.drop(empty_columns, axis=1)
+dfB.head()
+```
+
+```{python}
+empty_columns = dfC.isnull().mean()[dfC.isnull().mean() > 0.6].index
+dfC = dfC.drop(empty_columns, axis=1)
+dfC.head()
+```
+
+### Step-3: Exploratory Visual Analysis
+
+```{python}
+dfA["age"] = pd.Series(
+    [dfA["first_date"][i].year - dfA["birthday"][i].year for i in range(dfA.shape[0])]
+)
+dfAB = pd.merge(dfA, dfB, on="id")
+
+dfAB = dfAB[dfAB["thrombosis"] != 3]
+
+dfAB["thrombosis"] = dfAB["thrombosis"].replace(
+    {0: "Negative", 1: "Positive", 2: "Positive"}
+)
+```
+
+## Question 1: What is average age of a thrombosis patient?
+
+```{python}
+fig, ax = plt.subplots(figsize=(8, 6))
+
+colors = ["#24b1d1", "#ae24d1"]
+sns.barplot(data=dfAB, x="thrombosis", y="age", hue="sex", palette=colors, ax=ax)
+# I removed some columns from dfB which has more that 50% NAN values.
+plt.xticks(rotation=0, fontsize=14)
+plt.yticks(rotation=0, fontsize=14)
+plt.xlabel("Thrombosis", fontsize=16)
+plt.ylabel("Age", fontsize=16)
+plt.legend(fontsize=30, prop={"size": 15}, loc=1)
+```
+
+```{python}
+def remove_outlier(df, col):
+    percentile25 = df[col].quantile(0.25)
+    percentile75 = df[col].quantile(0.75)
+
+    iqr = percentile75 - percentile25
+
+    # Calculate Inter Quartile
+    upper_limit = percentile75 + 1.5 * iqr
+    lower_limit = percentile25 - 1.5 * iqr
+    df = df[(df[col] < upper_limit) & (df[col] > lower_limit)]
+    return df
+```
+
+```{python}
+dfA.dtypes
+```
+
+```{python}
+dfB["acl_igm"] = dfB["acl_igm"].replace({187122.0: 0.18})
+```
+
+```{python}
+dfB["acl_igm"] = dfB["acl_igm"].replace({187122.0: 0.18})
+```
+
+```{python}
+dfB.head()
+```
+
+## Question 2: What antibody namely ("acl_igg", "acl_igm" and "acl_iga") range is more likely linked to thrombosis patients?
+
+```{python}
+dfAB = pd.merge(dfA, dfB, on="id")
+dfAB = dfAB[dfAB["thrombosis"] != 3]
+dfAB["thrombosis"] = dfAB["thrombosis"].replace(
+    {0: "negative", 1: "positive", 2: "positive"}
+)
+dfAB = remove_outlier(dfAB, "acl_igg")
+dfAB = remove_outlier(dfAB, "acl_igm")
+dfAB = remove_outlier(dfAB, "acl_iga")
+
+dfAB_sex_throm = dfAB.groupby(["sex", "thrombosis"]).mean().reset_index()
+```
+
+```{python}
+dfAB_sex_throm.head()
+```
+
+```{python}
+dfAB_sex_throm.iloc[:, 3:].stack()
+```
+
+```{python}
+import matplotlib
+
+matplotlib.rc("xtick", labelsize=12)
+matplotlib.rc("ytick", labelsize=12)
+
+fig, ax = plt.subplots(2, 2, figsize=(8, 6))
+
+fig.delaxes(ax[1][1])
+colors = ["#e52165", "#0d1137"]
+sns.barplot(
+    data=dfAB_sex_throm,
+    x="thrombosis",
+    y="acl_igg",
+    hue="sex",
+    ax=ax[0, 0],
+    palette=colors,
+)
+sns.barplot(
+    data=dfAB_sex_throm,
+    x="thrombosis",
+    y="acl_igm",
+    hue="sex",
+    ax=ax[0, 1],
+    palette=colors,
+)
+sns.barplot(
+    data=dfAB_sex_throm,
+    x="thrombosis",
+    y="acl_iga",
+    hue="sex",
+    ax=ax[1, 0],
+    palette=colors,
+)
+ax[0, 0].set_title("acl_igg", fontsize=12)
+ax[0, 1].set_title("acl_igm", fontsize=12)
+ax[1, 0].set_title("acl_iga", fontsize=12)
+#What antibody namely ("acl_igg", "acl_igm" and "acl_iga") range is more likely linked to thrombosis patients
+```
+
+# Plot 3: What is the difference between the diagnosis of positive and negative thrombosis patient.
+
+```{python}
+dfB_diognosis = dfB.copy()
+dfB_diognosis = dfB_diognosis[dfB_diognosis["thrombosis"] != 3]
+dfB_diognosis["thrombosis"] = dfB_diognosis["thrombosis"].replace(
+    {0: "negative", 1: "positive", 2: "positive"}
+)
+dfB_diognosis_neg, dfB_diognosis_pos = [
+    group.reset_index() for key, group in dfB_diognosis.groupby("thrombosis")
+]
+
+fig, ax = plt.subplots(1, 2, figsize=(10, 8))
+
+for i, df in enumerate([dfB_diognosis_neg, dfB_diognosis_pos]):
+    diagnosis = []
+    for diag in df["diagnosis"]:
+        if type(diag) != float:
+            for elem in str(diag).split(","):
+                diagnosis.append(elem.strip())
+    diagnosis = pd.Series(diagnosis).value_counts().iloc[:10]
+
+    # declaring exploding pie
+    explode = np.zeros(diagnosis.shape[0])
+    # define Seaborn color palette to use
+    palette_color = sns.color_palette("RdPu")
+
+    # plotting data on chart
+    ax[i].pie(
+        diagnosis.values,
+        labels=diagnosis.index,
+        colors=palette_color,
+        explode=explode,
+        autopct="%.0f%%",
+    )
+    ax[i].set_title(df["thrombosis"][0].capitalize(),fontsize=15)
+```
+
+```{python}
+empty_columns = dfC.isnull().mean()[dfC.isnull().mean()>0.6].index
+dfC = dfC.drop(empty_columns, axis = 1)
+for col in dfC.columns[2:]:
+    if (pd.to_numeric(dfC[col], errors="coerce").isnull().sum() - dfC[col].isnull().sum()) <=100:
+        dfC[col] = pd.to_numeric(dfC[col], errors="coerce")
+dfC_modified= dfC.groupby("id").mean()
+
+ax = plt.axes()
+sns.heatmap(dfC_modified.corr(),annot=True,cmap='RdYlGn',linewidths=0.2, ax = ax)
+ax.set_title("Relationship Between laboratory Examination terms", fontsize = 18)
+fig=plt.gcf()
+fig.set_size_inches(15,12)
+
+
+plt.show()
+```
+
+# Step-4: Final Plots
+
+## Plot 1
+
+```{python}
+fig, ax = plt.subplots(figsize=(10,8))
+
+colors = ["#24b1d1", "#ae24d1"]
+sns.barplot(data=dfAB, x="thrombosis", y="age", hue="sex", palette=colors, ax=ax)
+# I removed some columns from dfB which has more that 50% NAN values
+txt="Fig1:In this stacked barplot, we are able to visualize the mean age of patients who have thrombosis based on their sex. The average age \nof male patients who have thrombosis is 45 while the average age for females who have thrombosis is 28.I was curious to find the \naverage age of a thrombosis patient as I wanted to explore whether a patient who is older, is more likely to have thrombosis than a patient who is younger "
+fig.text(.5, 0.001, txt, ha='center', fontsize=9)
+plt.xticks(rotation=0, fontsize=12)
+plt.yticks(rotation=0, fontsize=12)
+plt.xlabel("Thrombosis", fontsize=12)
+plt.ylabel("Age", fontsize=12)
+ax.set_title("Average Age of Thrombosis Patients by Sex",  weight = "bold", fontsize=12)
+plt.legend(fontsize=30, prop={"size": 12}, loc=1)
+plt.savefig("plots/plot-01.png")
+```
+
+## Plot 2
+
+```{python}
+import matplotlib
+
+matplotlib.rc("xtick", labelsize=12)
+matplotlib.rc("ytick", labelsize=12)
+
+fig, ax = plt.subplots(1, 3, figsize=(12, 7))
+#fig.delaxes(ax[1][1])
+colors = ["#e52165", "#0d1137"]
+sns.barplot(
+    data=dfAB_sex_throm,
+    x="thrombosis",
+    y="acl_igg",
+    hue="sex",
+    ax=ax[0],
+    palette=colors,
+)
+txt="Fig 2:This plot asseses the range of different antibodies linked with positive and negative thrombosis with respect to \ndifferent genders and explores which antibody has the highest range among males and females."
+fig.text(.5, -0.0, txt, ha='center', fontsize=9)
+sns.barplot(
+    data=dfAB_sex_throm,
+    x="thrombosis",
+    y="acl_igm",
+    hue="sex",
+    ax=ax[1],
+    palette=colors,
+)
+sns.barplot(
+    data=dfAB_sex_throm,
+    x="thrombosis",
+    y="acl_iga",
+    hue="sex",
+    ax=ax[2],
+    palette=colors,
+)
+ax[0].set_title("acl_igg", fontsize=12)
+ax[1].set_title("acl_igm", fontsize=12)
+ax[2].set_title("acl_iga", fontsize=12)
+#What antibody namely ("acl_igg", "acl_igm" and "acl_iga") range is more likely linked to thrombosis patients
+plt.suptitle("Bar chart of which antibodies is more likely in thrombosis patients",  weight = "bold", fontsize = 10)
+plt.savefig("plots/plot-02.png")
+```
+
+## Plot 3
+
+```{python}
+dfB_diognosis = dfB.copy()
+dfB_diognosis = dfB_diognosis[dfB_diognosis["thrombosis"] != 3]
+dfB_diognosis["thrombosis"] = dfB_diognosis["thrombosis"].replace(
+    {0: "negative", 1: "positive", 2: "positive"}
+)
+dfB_diognosis_neg, dfB_diognosis_pos = [
+    group.reset_index() for key, group in dfB_diognosis.groupby("thrombosis")
+]
+
+fig, ax = plt.subplots(1, 2, figsize=(8, 5))
+txt="Fig 3:This plot explores the diagnosis between positive and negative thrombosis.\nThe pierchart contains the top 10 most frequent diagnosis and can be used to analyze\n which diagnosis is more prevalent in positive thrombosis compared to negative thrombosis"
+fig.text(.5, 0.1, txt, ha='center', fontsize=12)
+
+for i, df in enumerate([dfB_diognosis_neg, dfB_diognosis_pos]):
+    diagnosis = []
+    for diag in df["diagnosis"]:
+        if type(diag) != float:
+            for elem in str(diag).split(","):
+                diagnosis.append(elem.strip())
+    diagnosis = pd.Series(diagnosis).value_counts().iloc[:10]
+
+    # declaring exploding pie
+    explode = np.zeros(diagnosis.shape[0])
+    # define Seaborn color palette to use
+    palette_color = sns.color_palette("RdPu")
+
+    # plotting data on chart
+    ax[i].pie(
+        diagnosis.values,
+        labels=diagnosis.index,
+        colors=palette_color,
+        explode=explode,
+        autopct="%.0f%%",
+    )
+    ax[i].set_title(df["thrombosis"][0].capitalize(),fontsize=15)
+    plt.suptitle("Pie chart showing the diagnosis of positive and negative thrombosis.", weight = "bold", fontsize = 12)
+    plt.savefig("plots/plot-03.png")
+```
+
+## Plot 4
+
+```{python}
+empty_columns = dfC.isnull().mean()[dfC.isnull().mean()>0.6].index
+dfC = dfC.drop(empty_columns, axis = 1)
+for col in dfC.columns[2:]:
+    if (pd.to_numeric(dfC[col], errors="coerce").isnull().sum() - dfC[col].isnull().sum()) <=100:
+        dfC[col] = pd.to_numeric(dfC[col], errors="coerce")
+dfC_modified= dfC.groupby("id").mean()
+ax = plt.axes()
+sns.heatmap(dfC_modified.corr(),annot=True,cmap='RdYlGn',linewidths=0.2, ax = ax, annot_kws = {"fontsize" :6}, fmt= ".0%")#data.corr()-->correlation matrix
+ax.set_title("Relationship Between laboratory Examination terms", fontsize = 18)
+fig=plt.gcf()
+fig.set_size_inches(12,10)
+txt="Fig 4:In this heatmap, we are trying to analyze the relationship of laboratory examinations with each other.\nThe color bar indicates the relationship between each exam in which 1.0 (green)\n shows the highest correlation while -0.4 (red) shows the weakest correlation."
+fig.text(.5, 0.0001, txt, ha='center', fontsize=12)
+plt.savefig("plots/plot-04.png")
+plt.show()
+```
+
+## Step-5: Technical summary
+
+After reading the medical description file and gaining a better understanding of thrombosis, I decided to explore the dataset in order to come up with a couple of questions that peaked my curiosity. The questions I came up with are the following:
+1. What is the average age of a thrombosis patient?
+2. What antibody namely ("acl_igg", "acl_igm" and "acl_iga") range is more likely linked to thrombosis patients?
+3. What is the difference between the diagnosis of positive and negative thrombosis patient?
+
+Upon generating my initial questions, I decided to read the datasets and clean the data. However, when I first read the data by using the default encodings, I received an error due to an invalid encoding type and thus I had to change the encoding to Latin in order to read the CSV file. Additionally, I had to create a custom parser function as the tsumato_a. CSV file has three date columns (birthday, description & first date) which have different date formats thus I had to utilize the custom parser function and passed it through the date_parser parameter of the read_csv function in order to transform the date columns. Moreover, I utilized the same parser in the examination date column in the tsumoto_b CSV file as it follows the same date format. As per the assignment instructions of keeping the column names in snake_case format, I created a function that converts columns into the snake_case format. Similarly, I removed columns from the tsumato_b CSV file which contained more than 50% NAN values. 
+
+In terms of visualizations, I created a stacked barplot to find out the average age of a thrombosis patient.  I was curious to find the average age of a thrombosis patient as I wanted to explore whether a patient who is older, is more likely to have thrombosis than a patient who is younger. In order to do this, I subtracted the “first date” (the data in which a patient was admitted to the hospital from the “birthday” column to find the age of the patients. Furthermore, I created a new column named “age” which contains the result of the calculation.  Additionally, the barplot was useful in determining that older men are more likely to get thrombosis and the average age of a male patient is 45 while a female patient is 28  
+
+In the second plot, I created a barplot in order to analyze the range of different antibodies linked with positive and negative thrombosis with respect to different genders. Before generating the barplot, I merged tsumato_a & tsumato_b to combine the gender column in a new data frame. Moreover, I did some data cleaning which consisted of renaming the values of thrombosis and I removed outliers from the antibody columns. Also, I took the mean of the antibodies column with respect to gender and thrombosis. Furthermore, I used the new data frame to create the plot. After analyzing the barplot, I was able to conclude that the antibody which has the highest range of positive thrombosis within males is acl_iga while for females it is acl_igm thus helping me answer my question. I tried to do a scatterplot to find the relationship between the antibody values (aCL IgA, aCl IgG & aCl igM). However, I realized I should compare the antibody values with thrombosis thus I added the classification of gender to understand how gender is affected in terms of thrombosis (do more males have thrombosis compared to females and vice versa).
+
+In the third plot, I decided to create a pie chart in order to explore the diagnosis between positive and negative thrombosis. In order to generate the piechart, I had to do some data cleaning in which I first generated a copy of the dfb dataset as I didn't want to make any changes to the original dataset. Furthermore, I decided to group by the dataset in order to separate positive and negative thrombosis patients in two different data frames (dfB_diognosis_neg, dfB_diognosis_pos). After exploring the 'diagnosis' column, I noticed that a patient can have more than one diagnosis so I decided to separate each diagnosis by a comma in order to do further analysis. Moreover, I took the diagnosis column from each data frame (dfB_diognosis_neg, dfB_diognosis_pos) and cleaned and stored the values in a separate list. Upon completing the cleaning of the list, I converted the list to a series and plotted the pie chart on the frequency of each diagnosis. By creating this piechart I was able to gain insight on what diagnosis is more prevalent in positive thrombosis compared to negative thrombosis thus helping me answer my question.
+
+The final plot I created was a heat map to analyze the relationship of laboratory examinations with each other. In order to create the heat map, I first removed columns which have more than 60% null values. Secondly, I did a groupby on the dfC data frame with respect to patientid and I took the mean of the numerical columns. After doing a groupby on the dataset, i used the results in the dataset to make a heat map. As there are numerous numerical columns in the dataset, I decided it was best to do a heat map in order to show the relationship between each variable. The color bar indicates the relationship between each exam in which 1.0 (green) shows the highest correlation while -0.4 (red) shows the weakest correlation.  I also noticed got, gpt & idh as well abc, hgb and hct are positively correlated.
+
+
+Finally, I would say the data created by the authors wasn't the best as it has some issues as previously mentioned which includes date parsing in which different date columns had different date formats therefore I needed to use the parser function to transform the date columns. Secondly, there was a lot of null values in the dataset and I realized that gender is not defined for every patient id , it is only defined for those patient id which is  part for dfA and lastly I found some outliers in the dataset which had to be removed before creating any visualizations. 
+
